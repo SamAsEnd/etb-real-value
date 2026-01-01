@@ -2,6 +2,7 @@ import { getCPI, getDateRange } from 'cpi-us';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { defineEventHandler, readBody, createError } from 'h3';
+import exchangeData from './exchange_rates.json'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
@@ -11,19 +12,6 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Missing parameters: amountEtb, month, and year are required.',
-    });
-  }
-
-  // Fetch Rates
-  const filePath = path.resolve(process.cwd(), 'public/data/exchange_rates.json');
-  let exchangeData;
-  try {
-    const data = await fs.readFile(filePath, 'utf-8');
-    exchangeData = JSON.parse(data);
-  } catch (error) {
-    throw createError({
-      statusCode: 500,
-      statusMessage: `Failed to load exchange rates data: ${error instanceof Error ? error.message : String(error)}`,
     });
   }
 
