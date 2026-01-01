@@ -10,6 +10,17 @@ export default defineNuxtConfig({
     '@nuxt/image',
     '@nuxt/scripts',
     '@nuxt/test-utils',
-    '@nuxt/ui'
+    'vuetify-nuxt-module'
+  ],
+  vuetify: {
+    moduleOptions: {
+      /* module specific options */
+    },
+    vuetifyOptions: {
+      /* vuetify options */
+    }
+  },
+  css: [
+    '@mdi/font/css/materialdesignicons.min.css'
   ]
 })
