@@ -2,8 +2,10 @@
 import { ref, computed } from 'vue';
 
 const amountEtb = ref<number>(1000);
-const month = ref<number>(1);
-const year = ref<string>('2020');
+const selectedDate = ref<string>('2020-01');
+
+const month = computed(() => Number(selectedDate.value.split('-')[1]));
+const year = computed(() => Number(selectedDate.value.split('-')[0]));
 
 const months = [
   { title: 'January', value: 1 },
@@ -20,9 +22,6 @@ const months = [
   { title: 'December', value: 12 },
 ];
 
-const currentYear = new Date().getFullYear();
-const years = Array.from({ length: currentYear - 1912 }, (_, i) => String(currentYear - i));
-
 interface ResultData {
   originalEtb: number;
   historicalUsd: number;
@@ -36,7 +35,7 @@ const { data, error, status, execute } = useFetch<ResultData>('/api/inflate', {
   body: computed(() => ({
     amountEtb: amountEtb.value,
     month: month.value,
-    year: Number(year.value),
+    year: year.value,
   })),
   immediate: false,
   watch: false,
@@ -50,51 +49,47 @@ const handleCalculate = async () => {
 </script>
 
 <template>
-  <v-container class="max-w-2xl py-6">
-    <v-card>
-      <v-card-item>
-        <div class="d-flex align-center ga-3">
-          <v-avatar color="primary" variant="tonal" rounded="lg">
-            <v-icon icon="mdi-banknotes" />
+  <v-container class="max-w-2xl py-6 px-4">
+    <v-card elevation="3" rounded="xl" border>
+      <v-card-item class="bg-primary text-white py-6">
+        <template v-slot:prepend>
+          <v-avatar color="white" variant="flat" rounded="lg" size="56">
+            <v-icon icon="mdi-finance" color="primary" size="32" />
           </v-avatar>
-          <div>
-            <v-card-title class="text-h5 font-weight-bold">ETB Inflation Converter</v-card-title>
-            <v-card-subtitle>Calculate historical value of Ethiopian Birr adjusted for USD inflation</v-card-subtitle>
-          </div>
-        </div>
+        </template>
+        <v-card-title class="text-h4 font-weight-black">ETB Inflation</v-card-title>
+        <v-card-subtitle class="text-white opacity-90 text-body-1">
+          Historical value adjusted for USD inflation
+        </v-card-subtitle>
       </v-card-item>
 
-      <v-card-text>
+      <v-card-text class="pa-6">
         <v-row>
-          <v-col cols="12" sm="4">
+          <v-col cols="12" sm="6">
+            <v-label class="mb-2 font-weight-bold">Amount to Convert</v-label>
             <v-text-field
               v-model.number="amountEtb"
-              label="Amount (ETB)"
+              prefix="ETB"
+              variant="outlined"
               type="number"
               step="0.01"
-              prepend-inner-icon="mdi-banknotes"
-              placeholder="1000.00"
+              placeholder="1,000.00"
               hide-details="auto"
+              density="comfortable"
             />
           </v-col>
           
-          <v-col cols="12" sm="4">
-            <v-select
-              v-model="month"
-              label="Month"
-              :items="months"
+          <v-col cols="12" sm="6">
+            <v-label class="mb-2 font-weight-bold">Historical Date</v-label>
+            <v-text-field
+              v-model="selectedDate"
+              type="month"
+              min="1996-01"
+              max="2026-12"
+              variant="outlined"
               prepend-inner-icon="mdi-calendar"
               hide-details="auto"
-            />
-          </v-col>
-          
-          <v-col cols="12" sm="4">
-            <v-select
-              v-model="year"
-              label="Year"
-              :items="years"
-              prepend-inner-icon="mdi-calendar-range"
-              hide-details="auto"
+              density="comfortable"
             />
           </v-col>
         </v-row>
@@ -103,59 +98,82 @@ const handleCalculate = async () => {
           @click="handleCalculate"
           :loading="isLoading"
           block
-          size="large"
+          size="x-large"
           color="primary"
-          class="mt-4"
+          class="mt-6 text-none font-weight-bold"
+          rounded="lg"
+          elevation="2"
         >
-          Calculate
+          Calculate Value
+          <template v-slot:append>
+            <v-icon icon="mdi-chevron-right" />
+          </template>
         </v-btn>
 
         <v-alert
           v-if="error"
           type="error"
           variant="tonal"
-          icon="mdi-alert-triangle"
-          class="mt-4"
-          :title="error.data?.statusMessage || 'An error occurred'"
+          icon="mdi-alert-circle"
+          class="mt-6"
+          rounded="lg"
+          :title="error.data?.statusMessage || 'Calculation Failed'"
+          text="We couldn't retrieve the inflation data. Please try again later."
         />
 
-        <v-card v-if="data" variant="tonal" color="primary" class="mt-6">
-          <v-card-item>
-            <div class="d-flex align-center ga-2">
-              <v-icon icon="mdi-presentation-play" />
-              <v-card-title class="text-h6 font-weight-semibold">Conversion Result</v-card-title>
+        <v-expand-transition>
+          <div v-if="data" class="mt-8">
+            <div class="d-flex align-center ga-2 mb-4">
+              <v-icon icon="mdi-chart-line" color="primary" />
+              <h3 class="text-h6 font-weight-bold">Analysis Results</h3>
             </div>
-          </v-card-item>
-          
-          <v-card-text>
-            <div class="text-body-1">
-              <p class="mb-4">
-                In {{ months.find(m => m.value === month)?.title }} {{ year }}, your 
-                <v-chip size="small" label>{{ data.originalEtb.toFixed(2) }} ETB</v-chip> was worth 
-                <span class="font-weight-bold text-primary">${{ data.historicalUsd.toFixed(2) }}</span>.
-              </p>
-              
-              <v-divider class="my-4">
-                <v-chip size="x-small" variant="text" class="text-uppercase">Inflation Adjustment</v-chip>
-              </v-divider>
-              
-              <p>
-                Adjusted for inflation, that is <span class="font-weight-bold text-primary">${{ data.todayUsd.toFixed(2) }}</span>; 
-                which is equivalent to <span class="font-weight-bold text-primary text-h6">{{ data.finalEtb.toLocaleString() }} ETB</span> today.
-              </p>
-            </div>
-          </v-card-text>
-          
-          <v-divider />
 
-          <v-card-actions class="px-4 py-2">
-            <span class="text-caption font-italic opacity-80">Data based on US CPI and historical ETB/USD rates</span>
-            <v-spacer />
-            <v-chip color="primary" size="small" variant="flat">
-              Multiplier: {{ data.inflationMultiplier.toFixed(4) }}x
-            </v-chip>
-          </v-card-actions>
-        </v-card>
+            <v-row>
+              <!-- Historical Value Card -->
+              <v-col cols="12" md="6">
+                <v-card variant="outlined" class="pa-4 h-100 border-opacity-25" rounded="lg">
+                  <div class="text-overline mb-1">Value in {{ months.find(m => m.value === month)?.title }} {{ year }}</div>
+                  <div class="d-flex align-baseline ga-2">
+                    <span class="text-h5 font-weight-bold">{{ data.originalEtb.toLocaleString() }}</span>
+                    <span class="text-caption font-weight-medium">ETB</span>
+                  </div>
+                  <div class="text-body-2 text-medium-emphasis mt-1">
+                    Equivalent to <span class="text-primary font-weight-bold">${{ data.historicalUsd.toFixed(2) }}</span>
+                  </div>
+                </v-card>
+              </v-col>
+
+              <!-- Current Value Card -->
+              <v-col cols="12" md="6">
+                <v-card color="primary" variant="tonal" class="pa-4 h-100" rounded="lg">
+                  <div class="text-overline mb-1 text-primary">Equivalent Today</div>
+                  <div class="d-flex align-baseline ga-2">
+                    <span class="text-h5 font-weight-bold">{{ data.finalEtb.toLocaleString() }}</span>
+                    <span class="text-caption font-weight-medium">ETB</span>
+                  </div>
+                  <div class="text-body-2 text-medium-emphasis mt-1">
+                    Value adjusted for inflation: <span class="text-primary font-weight-bold">${{ data.todayUsd.toFixed(2) }}</span>
+                  </div>
+                </v-card>
+              </v-col>
+            </v-row>
+
+            <v-card variant="flat" color="grey-lighten-4" class="mt-4 pa-4" rounded="lg">
+              <div class="d-flex justify-space-between align-center">
+                <div class="text-body-2">
+                  <v-icon icon="mdi-information-outline" size="small" class="me-1" />
+                  Inflation Multiplier:
+                </div>
+                <v-chip size="small" color="primary" font-weight-bold>
+                  {{ data.inflationMultiplier.toFixed(4) }}x
+                </v-chip>
+              </div>
+              <div class="text-caption text-medium-emphasis mt-2">
+                Based on US CPI and historical ETB/USD exchange rates.
+              </div>
+            </v-card>
+          </div>
+        </v-expand-transition>
       </v-card-text>
     </v-card>
   </v-container>
