@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 
-const amountEtb = ref<number>(1000);
-const selectedDate = ref<string>('2020-01');
+const amountEtb = ref<number>(5400);
+const selectedDate = ref<string>('2016-09');
 
 const month = computed(() => Number(selectedDate.value.split('-')[1]));
 const year = computed(() => Number(selectedDate.value.split('-')[0]));
